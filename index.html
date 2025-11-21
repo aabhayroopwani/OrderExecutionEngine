@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Order Executor Test</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    #log { 
+      background: #111; color: #0f0; padding: 10px; height: 250px; 
+      overflow-y: auto; white-space: pre-wrap; border-radius: 5px;
+    }
+    input, button { padding: 6px; margin: 5px 0; }
+  </style>
+</head>
+<body>
+
+  <h2>Order Executor Test Page</h2>
+
+  <h3>Single Step: Create Order + Auto Connect WebSocket</h3>
+  <button onclick="startOrderFlow()">Start Order</button>
+
+  <p>Order ID: <span id="orderId">None</span></p>
+
+  <div id="log"></div>
+
+<script>
+function log(msg) {
+  const box = document.getElementById("log");
+  box.textContent += msg + "\n";
+  box.scrollTop = box.scrollHeight;
+}
+
+
+async function startOrderFlow() {
+  log("Creating order...");
+
+  const res = await fetch("http://localhost:3000/api/orders/execute", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      inputToken: "ETH",
+      outputToken: "USDC",
+      amount: 1
+    })
+  });
+
+  const data = await res.json();
+  const orderId = data.orderId;
+
+  document.getElementById("orderId").textContent = orderId;
+  log("Order created: " + orderId);
+
+
+  connectWS(orderId);
+}
+
+function connectWS(orderId) {
+  log("Connecting WebSocket...");
+
+  const ws = new WebSocket(`ws://localhost:3000/api/orders/updates/${orderId}`);
+
+  ws.onopen = () => log("WS Connected");
+  ws.onmessage = (msg) => log("WS: " + msg.data);
+  ws.onerror = (err) => log("WS Error: " + err);
+  ws.onclose = () => log("WS Closed");
+
+  
+}
+</script>
+
+</body>
+</html>
